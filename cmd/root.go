@@ -7,10 +7,8 @@ import (
 	"os"
 
 	"github.com/buzzsurfr/sonobuoy/pkg/server"
-	pb "github.com/buzzsurfr/sonobuoy/proto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -34,11 +32,11 @@ var (
 			if err != nil {
 				log.Fatalf("failed to listen: %v", err)
 			}
-			s := grpc.NewServer()
-			pb.RegisterEchoServer(s, &server.Server{})
+			s := &server.TcpServer{}
 			if err := s.Serve(lis); err != nil {
 				log.Fatalf("failed to serve: %v", err)
 			}
+			defer lis.Close()
 		},
 	}
 )
