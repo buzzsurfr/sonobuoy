@@ -9,11 +9,27 @@ import (
 	"github.com/buzzsurfr/sonobuoy/pkg/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/thediveo/enumflag"
 )
 
+type ServerType enumflag.Flag
+
+const (
+	Tcp ServerType = iota
+	Http
+	Grpc
+)
+
+var ServerTypeIds = map[ServerType][]string{
+	Tcp:  {"tcp"},
+	Http: {"http"},
+	Grpc: {"grpc"},
+}
+
 var (
-	cfgFile string
-	port    = ":2869"
+	cfgFile  string
+	port     string
+	protocol ServerType
 
 	// rootCmd represents the base command when called without any subcommands
 	rootCmd = &cobra.Command{
@@ -32,7 +48,15 @@ var (
 			if err != nil {
 				log.Fatalf("failed to listen: %v", err)
 			}
-			s := &server.TcpServer{}
+			var s server.EchoServer
+			switch protocol {
+			case Tcp:
+				s = &server.TcpServer{}
+			case Http:
+				s = &server.HttpServer{}
+			case Grpc:
+				s = &server.GrpcServer{}
+			}
 			if err := s.Serve(lis); err != nil {
 				log.Fatalf("failed to serve: %v", err)
 			}
@@ -55,10 +79,10 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sonobuoy.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().VarP(
+		enumflag.New(&protocol, "protocol", ServerTypeIds, enumflag.EnumCaseInsensitive),
+		"protocol", "P", "Protocol: tcp | http | grpc")
+	rootCmd.PersistentFlags().StringVarP(&port, "port", "p", ":2869", "Port")
 }
 
 // initConfig reads in config file and ENV variables if set.
